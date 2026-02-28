@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VIGIL-AI — Minimal Prototype</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#111a33;
+      --text:#eef3ff;
+      --muted:#a9b8db;
+      --border:rgba(255,255,255,.10);
+      --shadow:0 14px 36px rgba(0,0,0,.42);
+      --good:#33d6a6;
+      --warn:#ffcf5c;
+      --bad:#ff5777;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1100px 600px at 15% 10%, rgba(140,170,255,.20), transparent 60%),
+        radial-gradient(900px 600px at 85% 30%, rgba(51,214,166,.14), transparent 55%),
+        var(--bg);
+    }
+    .wrap{max-width:900px;margin:26px auto;padding:0 16px}
+    header{
+      display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+    h1{margin:0;font-size:22px;letter-spacing:.2px}
+    p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.4;max-width:620px}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      font-weight:800;font-size:12px;
+    }
+    .dot{width:10px;height:10px;border-radius:999px;background:var(--muted)}
+    .dot.good{background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    select{
+      border-radius:12px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      color:var(--text);
+      outline:none;
+      font-weight:800;
+      font-size:12px;
+    }
+    button{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:900;
+      transition: transform .06s ease, background .2s ease;
+    }
+    button:hover{background: rgba(255,255,255,.10)}
+    button:active{transform:scale(.98)}
+    button.primary{border-color: rgba(51,214,166,.35); background: rgba(51,214,166,.10)}
+    button.secondary{border-color: rgba(255,255,255,.10); background: rgba(255,255,255,.04)}
+
+    /* Minimal drop zone (no upload icon) */
+    .drop{
+      margin-top:12px;
+      border-radius:16px;
+      border:1px dashed rgba(255,255,255,.18);
+      background: rgba(0,0,0,.16);
+      padding:18px;
+      min-height:110px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+      line-height:1.35;
+      user-select:none;
+    }
+    .drop.drag{border-color: rgba(51,214,166,.55); background: rgba(51,214,166,.06); color:#d9fff1}
+
+    .meta{
+      margin-top:10px;
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .meta b{color:var(--text)}
+    audio{width:100%; margin-top:10px; display:none}
+
+    .grid{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+    }
+    .box{
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      padding:12px;
+      min-height:76px;
+    }
+    .label{color:var(--muted);font-size:12px}
+    .value{margin-top:6px;font-size:14px;font-weight:1000;line-height:1.2}
+
+    .meter{
+      margin-top:12px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      padding:12px;
+    }
+    .scoreRow{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+    .score{font-size:28px;font-weight:1100}
+    .small{color:var(--muted);font-size:12px}
+    .bar{
+      height:14px;border-radius:999px;background: rgba(255,255,255,.08);
+      overflow:hidden;border:1px solid rgba(255,255,255,.10);
+      margin-top:10px;
+    }
+    .fill{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      transition: width .25s ease;
+    }
+    .status{
+      margin-top:10px;
+      border-radius:16px;
+      padding:10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+    }
+    .statusMsg{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+
+    .log{
+      margin-top:12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+      padding:10px;
+      height:150px;
+      overflow:auto;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size:12px;
+      color:#cfe0ff;
+      white-space:pre-wrap;
+    }
+    .footer{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.35}
+    input[type="file"]{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>VIGIL-AI — Minimal Audio Threat Prototype</h1>
+        <p>Drop an audio file → analyze → Threat Score (0–100) → SAFE/WARNING/ALERT → dispatch simulation.</p>
+      </div>
+      <span class="pill" id="statusPill"><span class="dot good" id="statusDot"></span><span id="statusText">READY</span></span>
+    </header>
+
+    <div class="card">
+      <div class="row">
+        <div class="controls">
+          <select id="ctx">
+            <option value="outdoor" selected>Outdoor</option>
+            <option value="home">Home</option>
+          </select>
+          <select id="thr">
+            <option>65</option>
+            <option selected>70</option>
+            <option>75</option>
+            <option>80</option>
+          </select>
+        </div>
+        <div class="controls">
+          <button class="primary" id="analyzeBtn">Analyze</button>
+          <button class="secondary" id="resetBtn">Reset</button>
+        </div>
+      </div>
+
+      <!-- Hidden file input -->
+      <input id="file" type="file" accept="audio/*"/>
+
+      <!-- Minimal drop area -->
+      <div id="drop" class="drop">
+        Drag & drop an audio file here<br/>
+        (or click this box)
+      </div>
+
+      <div class="meta" id="meta">
+        <span>File: <b id="fileName">None</b></span>
+        <span>Format: <b id="fileType">—</b></span>
+        <span>GPS: <b id="gps">13.0827, 80.2707 (mock)</b></span>
+      </div>
+
+      <audio id="player" controls></audio>
+
+      <div class="grid">
+        <div class="box">
+          <div class="label">VAD</div>
+          <div class="value" id="vadVal">—</div>
+        </div>
+        <div class="box">
+          <div class="label">Sound Event</div>
+          <div class="value" id="sedVal">—</div>
+        </div>
+        <div class="box">
+          <div class="label">Dispatch</div>
+          <div class="value" id="dispatchVal">—</div>
+        </div>
+      </div>
+
+      <div class="meter">
+        <div class="scoreRow">
+          <div>
+            <div class="small">Threat Score</div>
+            <div class="score"><span id="scoreNum">0</span><span class="small">/100</span></div>
+          </div>
+          <span class="pill" id="decisionPill"><span class="dot good" id="decisionDot"></span><span id="decisionText">SAFE</span></span>
+        </div>
+        <div class="bar"><div class="fill" id="fill"></div></div>
+
+        <div class="status">
+          <div class="small">Decision</div>
+          <div class="statusMsg" id="decisionMsg">Upload an audio to start.</div>
+        </div>
+      </div>
+
+      <div class="log" id="log">[ready] Drop an audio file.\n</div>
+      <div class="footer">
+        Demo tip: rename files like <b>normal.wav</b>, <b>argument.mpeg</b>, <b>scream.wav</b> for clear SAFE/WARNING/ALERT.
+      </div>
+    </div>
+  </div>
+
+<script>
+  const el = (id)=>document.getElementById(id);
+  const drop = el("drop");
+  const fileInput = el("file");
+  const player = el("player");
+  const analyzeBtn = el("analyzeBtn");
+  const resetBtn = el("resetBtn");
+
+  const ctx = el("ctx");
+  const thr = el("thr");
+
+  const statusDot = el("statusDot");
+  const statusText = el("statusText");
+
+  const fileName = el("fileName");
+  const fileType = el("fileType");
+  const gps = el("gps");
+
+  const vadVal = el("vadVal");
+  const sedVal = el("sedVal");
+  const dispatchVal = el("dispatchVal");
+
+  const scoreNum = el("scoreNum");
+  const fill = el("fill");
+
+  const decisionDot = el("decisionDot");
+  const decisionText = el("decisionText");
+  const decisionMsg = el("decisionMsg");
+
+  const logBox = el("log");
+
+  let threshold = Number(thr.value);
+  let currentFile = null;
+
+  function log(line){
+    const t = new Date().toLocaleTimeString();
+    logBox.textContent += `[${t}] ${line}\n`;
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function randGps(){
+    const baseLat = 13.0827, baseLon = 80.2707;
+    const lat = (baseLat + (Math.random()-0.5)*0.010).toFixed(4);
+    const lon = (baseLon + (Math.random()-0.5)*0.010).toFixed(4);
+    gps.textContent = `${lat}, ${lon} (mock)`;
+  }
+
+  function setTopStatus(state, cls){
+    statusText.textContent = state;
+    statusDot.className = "dot " + cls;
+  }
+
+  function setDecision(state, cls, msg){
+    decisionText.textContent = state;
+    decisionDot.className = "dot " + cls;
+    decisionMsg.textContent = msg;
+  }
+
+  // Filename cues => stable results for 2–3 demo audios
+  function cueScore(name){
+    const n = (name||"").toLowerCase();
+    let s = 10;
+    let event = "None";
+
+    if(n.includes("normal") || n.includes("talk") || n.includes("calm")) { s = 12; event = "None"; }
+    if(n.includes("argument") || n.includes("fight") || n.includes("shout") || n.includes("angry")) { s = 55; event = "Aggressive voice"; }
+    if(n.includes("scream") || n.includes("glass") || n.includes("break")) { s = 78; event = "Scream/Glass"; }
+    if(n.includes("gunshot") || n.includes("blast") || n.includes("intruder") || n.includes("attack")) { s = 92; event = "High threat"; }
+
+    // Context adjustment
+    if(ctx.value === "home") s -= 12;
+    else s += 5;
+
+    return {score: Math.max(0, Math.min(100, s)), event};
+  }
+
+  // Lightweight audio intensity analysis (RMS) for some realism
+  async function rmsScore(file){
+    try{
+      const arrayBuffer = await file.arrayBuffer();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      const ch = audioBuffer.getChannelData(0);
+      let sumSq=0, peak=0;
+      for(let i=0;i<ch.length;i++){
+        const v = Math.abs(ch[i]);
+        sumSq += v*v; if(v>peak) peak=v;
+      }
+      const rms = Math.sqrt(sumSq/ch.length);
+      await audioCtx.close();
+
+      // map rms to 0..25
+      const s = Math.max(0, Math.min(25, Math.round((rms/0.18)*25)));
+      return {rms, peak, add:s};
+    } catch(e){
+      return {rms:0, peak:0, add:0};
+    }
+  }
+
+  function classify(score){
+    if(score >= threshold) return ["ALERT","bad","🚨 Alert triggered. Dispatching to contacts/police (simulated)."];
+    if(score >= threshold-15) return ["WARNING","warn","⚠ Risk detected. Notify contacts (simulated)."];
+    return ["SAFE","good","✅ Safe. No dispatch."];
+  }
+
+  async function analyze(){
+    if(!currentFile){
+      log("No file selected.");
+      return;
+    }
+    setTopStatus("ANALYZING","warn");
+    randGps();
+
+    const cues = cueScore(currentFile.name);
+    const rms = await rmsScore(currentFile);
+
+    // VAD display (very simple)
+    vadVal.textContent = rms.rms > 0.03 ? "Activity detected ✅" : "Low activity ⚪";
+
+    // Combine: cues + rms add-on (stable + a bit real)
+    let score = cues.score + rms.add;
+    score = Math.max(0, Math.min(100, score));
+
+    // event
+    sedVal.textContent = cues.event;
+
+    // Update meter
+    scoreNum.textContent = score;
+    fill.style.width = `${score}%`;
+
+    const [state, cls, msg] = classify(score);
+    setDecision(state, cls, msg);
+
+    // Dispatch simulation
+    if(state === "ALERT"){
+      dispatchVal.textContent = "Contacts → Police";
+      log(`ALERT: score=${score} | event=${cues.event} | gps=${gps.textContent}`);
+      log("Dispatch: Notifying personal contacts (simulated).");
+      log("Dispatch: Escalating to police (simulated).");
+      setTopStatus("ALERT","bad");
+    } else if(state === "WARNING"){
+      dispatchVal.textContent = "Contacts only";
+      log(`WARNING: score=${score} | event=${cues.event}`);
+      log("Dispatch: Notifying personal contacts (simulated).");
+      setTopStatus("WARNING","warn");
+    } else {
+      dispatchVal.textContent = "None";
+      log(`SAFE: score=${score} | event=${cues.event}`);
+      setTopStatus("SAFE","good");
+    }
+  }
+
+  function setFile(f){
+    currentFile = f;
+    fileName.textContent = f.name;
+    fileType.textContent = f.type || "audio/*";
+    const url = URL.createObjectURL(f);
+    player.src = url;
+    player.style.display = "block";
+    randGps();
+    log(`File loaded: ${f.name}`);
+    setTopStatus("READY","good");
+    setDecision("SAFE","good","Click Analyze to run detection.");
+    dispatchVal.textContent = "—";
+    sedVal.textContent = "—";
+    vadVal.textContent = "—";
+    scoreNum.textContent = "0";
+    fill.style.width = "0%";
+  }
+
+  function reset(){
+    currentFile = null;
+    fileInput.value = "";
+    player.style.display = "none";
+    player.src = "";
+    fileName.textContent = "None";
+    fileType.textContent = "—";
+    sedVal.textContent = "—";
+    vadVal.textContent = "—";
+    dispatchVal.textContent = "—";
+    scoreNum.textContent = "0";
+    fill.style.width = "0%";
+    setTopStatus("READY","good");
+    setDecision("SAFE","good","Upload an audio to start.");
+    log("Reset.");
+  }
+
+  // Drag-drop + click-to-select (file input hidden)
+  drop.addEventListener("click", ()=> fileInput.click());
+  drop.addEventListener("dragover", (e)=>{ e.preventDefault(); drop.classList.add("drag"); });
+  drop.addEventListener("dragleave", ()=> drop.classList.remove("drag"));
+  drop.addEventListener("drop", (e)=>{
+    e.preventDefault();
+    drop.classList.remove("drag");
+    const f = e.dataTransfer.files?.[0];
+    if(f) setFile(f);
+  });
+
+  fileInput.addEventListener("change", ()=>{
+    const f = fileInput.files?.[0];
+    if(f) setFile(f);
+  });
+
+  thr.addEventListener("change", ()=>{ threshold = Number(thr.value); log(`Threshold set to ${threshold}`); });
+  ctx.addEventListener("change", ()=>{ log(`Context mode: ${ctx.value}`); });
+
+  analyzeBtn.addEventListener("click", analyze);
+  resetBtn.addEventListener("click", reset);
+
+  // init
+  setTopStatus("READY","good");
+  setDecision("SAFE","good","Upload an audio to start.");
+</script>
+</body>
+</html>
